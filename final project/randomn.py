@@ -1,5 +1,5 @@
 import random
 
-x = random.randrange(30)
+x = random.randrange(2)
 
 print(x)

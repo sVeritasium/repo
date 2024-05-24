@@ -1,9 +1,56 @@
 body {
     background-color: #150c25;
-  }
+}
 
-  .main_image {
-    width: 66%;
-    border-radius: 100%;
-    border: 
+.main_image {
+  width: 66%;
+  border-radius: 100%;
+}
+
+@keyframes letter-appear {
+  0% {
+      opacity: 0;
   }
+  100% {
+      opacity: 1;
+  }
+}
+
+.letter {
+    opacity: 0;
+}
+
+.lines {
+  word-break: keep-all;
+}
+
+@keyframes bubble-up {
+  0% {
+      opacity: 0;
+      transform: translateY(20px);
+  }
+  100% {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+.bubble-up {
+    opacity: 0;
+    animation: bubble-up 7s forwards;
+}
+
+.pop {
+    animation: pop 0.6s forwards;
+}
+
+@keyframes pop {
+  0% {
+      opacity: 1;
+      transform: scale(1);
+  }
+  100% {
+      opacity: 0;
+      transform: scale(1.5);
+  }
+}
