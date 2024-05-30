@@ -8,8 +8,10 @@
     <div class="text-center">
         <form action="/register" method="post">
             {% if get_flashed_messages() %}
-                <div class="alert alert-primary mb-0 text-center" role="alert">
-                    {{ get_flashed_messages() | join(" ") }}
+                <div class="row justify-content-center">
+                    <div class="col-3 text-center flash-message mt-1" role="alert">
+                        {{ get_flashed_messages() | join(" ") }}
+                    </div>
                 </div>
             {% endif %}
             <div class="mb-3 mt-5">
@@ -21,7 +23,7 @@
             <div class="mb-3">
                 <input class="form-control mx-auto w-auto" name="confirmation" placeholder="Password (again)" type="password">
             </div>
-            <button class="btn btn-primary" type="submit">Register</button>
+            <button class="btn" type="submit">Register</button>
         </form>
     </div>
 {% endblock %}

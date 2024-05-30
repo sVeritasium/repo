@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Notepad
+{% endblock %}
+
+{% block main %}
+    <div class="row justify-content-center">
+        <table class="col-7 table-striped mt-3">
+            <thead>
+                <tr>
+                    <th class="text-start" id="data-color">Line</th>
+                    <th class="text-end" id="data-color">Date</th>
+                    <th class="text-end" id="data-color">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for line in user_data %}
+                    <tr>
+                        <td class="text-start" id="data-color">{{ line.line }}</td>
+                        <td class="text-end" id="data-color">{{ line.date }}</td>
+                        <td class="text-end" id="data-color">
+                            <form action="/notepad" method="post">
+                                <button name="delete_line" type="submit" value="{{ line.id }}" class="btn">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor%}
+            </tbody>
+        </table> 
+    </div>
+    
+{% endblock %}

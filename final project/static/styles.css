@@ -1,11 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Karma:wght@300;400;500;600;700&family=Righteous&display=swap');
+
 body {
     background-color: #150c25;
 }
 
 .main_image {
-  width: 66%;
+  width: 27%;
   border-radius: 100%;
+  min-width: 277px;
 }
+
+.navbar-brand {
+  color:#F9F6EE;
+  font-family: "Karma", serif;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.nav-link {
+  color:#F9F6EE;
+  font-family: "Karma", serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.nav-link:hover, .nav-link:focus, .navbar-brand:hover {
+  color: #0072e6;
+}
+
+.navbar-toggler {
+  border-color: #F9F6EE;
+  color: #F9F6EE;
+}
+
+.btn {
+  color: #F9F6EE;
+  background-color: #0072e6;
+}
+
+.form-control {
+  background-color:#F9F6EE;
+}
+
+#data-color {
+  color: #F9F6EE;
+}
+
+.table-striped {
+  background-color: #1b1927;
+}
+
+.table-striped>tbody>tr:nth-child(odd)>td, 
+.table-striped>tbody>tr:nth-child(odd)>th {
+   background-color: #150c25;
+ }
+
+.placeholder-text::placeholder {
+  text-align: center;
+}
+
+.flash-message {
+  padding: 10px;
+  background-color: #0072e6;
+  color: #F9F6EE;
+  border-radius: 10px;
+
+}
+
 
 @keyframes letter-appear {
   0% {
@@ -22,6 +83,10 @@ body {
 
 .lines {
   word-break: keep-all;
+  color: #0072e6;
+  font-family: "Karma", serif;
+  font-weight: 300;
+  font-style: normal;
 }
 
 @keyframes bubble-up {
@@ -41,7 +106,7 @@ body {
 }
 
 .pop {
-    animation: pop 0.6s forwards;
+    animation: pop 0.1s forwards;
 }
 
 @keyframes pop {
@@ -54,3 +119,15 @@ body {
       transform: scale(1.5);
   }
 }
+
+/* Like button */
+#likeButton {
+  color: red;
+  font-size: 15px;
+}
+
+#swapHeart > button:active:after {
+  opacity: 0;
+}
+
+

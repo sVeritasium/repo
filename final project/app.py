@@ -6,7 +6,7 @@ from flask import Flask, flash, redirect, render_template, request, session, get
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import login_required
+from helpers import login_required, validate_entry, transform_line
 
 # Time
 date_time = datetime.datetime.now()
@@ -24,6 +24,7 @@ Session(app)
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///database.db")
 
+
 @app.after_request
 def after_request(response):
     """Ensure responds aren't cached"""
@@ -32,9 +33,14 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
+@app.context_processor
+def inject_user():
+    return dict(username=session.get("username"))
+
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -62,41 +68,6 @@ def register():
     else:
         return render_template("register.html")
 
-@app.route("/entry", methods=["POST"])
-@login_required
-def entry():
-    line = request.form.get("line")
-    # Need to add conditions for criteria
-    db.execute("INSERT INTO lines (line, user_id, date) VALUES (?, ?, ?)", line, session["user_id"], date_time)
-
-    return render_template("index.html")
-
-@app.route("/get_entries", methods=["GET"])
-def get_entries():
-    """Fetch three random lines from the database"""
-    lines = db.execute("SELECT line FROM lines ORDER BY RANDOM() LIMIT 3")
-
-    formatted_lines = []
-    if random.randrange(2) == 1:
-        for i, line in enumerate(lines):
-            if i > 0:
-                parts = line["line"].split(';')
-                formatted_lines.append({
-                    "line": parts[0]
-                })
-            else:
-                formatted_lines.append(line)
-    else:
-        for i, line in enumerate(lines):
-            if i < 2:
-                parts = line["line"].split(';')
-                formatted_lines.append({
-                    "line": parts[0]
-                })
-            else:
-                formatted_lines.append(line)
-    
-    return jsonify(formatted_lines)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -131,6 +102,8 @@ def login():
 
         # Clear session and remember which user has logged in
         session["user_id"] = rows[0]["id"]
+        session["username"] = rows[0]["username"]
+
 
         # Redirect user to home page
         return redirect("/")
@@ -139,7 +112,6 @@ def login():
     else:
         return render_template("login.html")
         
-
 
 @app.route("/logout")
 def logout():
@@ -150,3 +122,129 @@ def logout():
 
     # Redirect user to login form
     return redirect("/")
+
+
+@app.route("/entry", methods=["POST"])
+@login_required
+def entry():
+    line = request.form.get("line")
+
+    if not validate_entry(line):
+        flash("Invalid entry format")
+        return render_template("index.html", line=line)
+    
+    db.execute("INSERT INTO lines (line, user_id, date) VALUES (?, ?, ?)", transform_line(line), session["user_id"], date_time)
+    return render_template("index.html")
+
+
+@app.route("/get_entries", methods=["GET"])
+def get_entries():
+    """Fetch three random lines from the database"""
+    lines = db.execute("SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 3")
+    formatted_lines = []
+
+    # --- test ---
+    # if random.randrange(2) == 1:
+    #     formatted_lines = [
+    #         {'poem_type': 's'}, {'id': 64, 'line': 'With rainbows, comes magic; skies light up'}, {'id': 91, 'line': 'Without questions, no answers'}, {'id': 49, 'line': 'Without time, no healing'}
+    #     ]
+    # else:
+    #     formatted_lines = [
+    #         {'poem_type': 'e'}, {'id': 64, 'line': 'With bananas, comes magic; skies light up'}, {'id': 91, 'line': 'Without doom, no answers'}, {'id': 49, 'line': 'Without space, no healing'}
+    #     ]
+
+    if random.randrange(2) == 1:
+        formatted_lines.append({
+            "poem_type": "s"
+        })
+        for i, line in enumerate(lines):
+            if i > 0:
+                parts = line["line"].split(';')
+                formatted_lines.append({
+                    "id": line["id"],
+                    "line": parts[0]
+                    
+                })
+            else:
+                formatted_lines.append(line)
+    else:
+        formatted_lines.append({
+            "poem_type": "e"
+        })
+        for i, line in enumerate(lines):
+            if i < 2:
+                parts = line["line"].split(';')
+                formatted_lines.append({
+                    "id": line["id"],
+                    "line": parts[0]
+                })
+            else:
+                formatted_lines.append(line)
+
+    liked = None
+    if "user_id" in session:
+        liked = db.execute("""
+                        SELECT 1 FROM likes WHERE user_id = ? AND poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+                        """,
+                        session["user_id"], formatted_lines[0]["poem_type"],
+                        formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"])
+    
+    likes = db.execute("""
+                       SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+                       """,
+                       formatted_lines[0]["poem_type"], formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"])
+
+    liked_status = True if liked else False
+    response_data = {"lines": formatted_lines, "liked": liked_status, "likes" : likes[0]["count"]}
+
+    return jsonify(response_data)
+
+
+@app.route("/like", methods=["POST"])
+@login_required
+def like():
+    """Handle like button click"""
+    lines = request.json.get("lines")
+    poem_type = request.json.get("poem_type")
+
+    if not lines or len(lines) != 3 or not poem_type:
+        return jsonify({"error": "Please try again"}), 400
+    
+    # Check if the like already exists
+    liked = db.execute("""
+                       SELECT 1 FROM likes WHERE user_id = ? AND poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+                       """, 
+                       session.get("user_id"), poem_type, lines[0]["id"], lines[1]["id"], lines[2]["id"])
+    
+    if liked:
+        # If liked, delete the like
+        db.execute("""
+                   DELETE FROM likes WHERE user_id = ? AND poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+                   """, session.get("user_id"), poem_type, lines[0]["id"], lines[1]["id"], lines[2]["id"])
+        return jsonify({"success": True, "liked": False})
+    else:
+        # If not liked, insert a new like
+        db.execute("""
+                   INSERT INTO likes (user_id, poem_type, line1_id, line1, line2_id, line2, line3_id, line3, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   """,
+                   session["user_id"], poem_type, lines[0]["id"], lines[0]["text"], lines[1]["id"], lines[1]["text"], lines[2]["id"], lines[2]["text"], date_time)
+        return jsonify({"success": True, "liked": True})
+
+@app.route("/notepad", methods=["GET", "POST"])
+def notepad():
+    # display user data
+    # need to select lines by user id logged in
+    # **a person can spoof a session and access another user's data and make deletions?
+    # need to look into how to make a proper session?**
+    user_data = db.execute("SELECT id, line, date FROM lines WHERE user_id = ? ORDER BY date", session["user_id"])
+
+    # when deleting, need to match user id for security
+    if request.method == "POST":
+        line_id = request.form.get("delete_line")
+        if not line_id:
+            flash("Error encountered when deleting")
+            return render_template("notepad.html", user_data=user_data)
+        db.execute("DELETE FROM lines WHERE user_id = ? AND id = ?", session["user_id"], line_id)
+        return redirect("/notepad")
+
+    return render_template("notepad.html", user_data=user_data)
