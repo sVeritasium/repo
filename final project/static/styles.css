@@ -137,8 +137,6 @@ body {
   font-size: 15px;
 }
 
-#swapHeart > button:active:after {
-  opacity: 0;
+#likeButton.swap {
+  background-color: #0072e6; /* Background remains under swap */
 }
-
-

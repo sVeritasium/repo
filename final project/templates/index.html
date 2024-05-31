@@ -57,6 +57,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search your lines...">
                     <div class="list-group" id="userLinesList" style="max-height: 300px; overflow-y: auto;">
                         <!-- User lines will be appended here -->
                     </div>
@@ -68,6 +69,7 @@
             </div>
         </div>
     </div>
+
 
     <!-- Tooltip Modal -->
     <div class="modal fade" id="tooltipModal" tabindex="-1" aria-labelledby="tooltipModalLabel" aria-hidden="true">
@@ -184,34 +186,30 @@
                     clearAndAnimateLine('line3', data.lines[3].line, data.lines[3].id);
 
                     // Update the like button based on liked status
-                    if (data.liked) {
-                        $('#likeButton i').addClass('bi-heart-fill').removeClass('bi-heart');
-                        $('#likeButton').addClass('swap');
-                    } else {
-                        $('#likeButton i').addClass('bi-heart').removeClass('bi-heart-fill');
-                        $('#likeButton').removeClass('swap');
-                    }
-
-                    // Update the like counter
-                    var likeCounter = data.likes;
-                    if (likeCounter > 0) {
-                        $('#likeButton i').text(` ${likeCounter}`);
-                    } else {
-                        $('#likeButton i').text('');
-                    }
+                    updateLikeButton(data.liked, data.likes);
                 }, 600); // 600ms matches the duration of the pop animation
             })
             .catch(error => console.error('Error fetching lines:', error));
     }
 
-    // Fetch new lines every 15 seconds
-    setInterval(() => {
-        fetchLines(selectedLineId);
-    }, 15600); // 15 seconds + 600ms pop animation
+    function updateLikeButton(liked, likeCounter) {
+        const likeButtonIcon = $('#likeButton i');
+        const likeButton = $('#likeButton');
 
-    // Initial fetch
-    fetchLines();
-});
+        if (liked) {
+            likeButtonIcon.addClass('bi-heart-fill').removeClass('bi-heart');
+            likeButton.addClass('swap');
+        } else {
+            likeButtonIcon.addClass('bi-heart').removeClass('bi-heart-fill');
+            likeButton.addClass('swap'); // Ensure the swap class is always applied
+        }
+
+        if (likeCounter > 0) {
+            likeButtonIcon.text(` ${likeCounter}`);
+        } else {
+            likeButtonIcon.text('');
+        }
+    }
 
     function clearAndAnimateLine(elementId, text, id) {
         const lineElement = document.getElementById(elementId);
@@ -281,19 +279,11 @@
                     if (response.success) {
                         var likeCounter = parseInt($('#likeButton i').text()) || 0;
                         if (response.liked) {
-                            $('#likeButton i').addClass('bi-heart-fill').removeClass('bi-heart');
-                            $('#likeButton').addClass('swap');
                             likeCounter++;
                         } else {
-                            $('#likeButton i').addClass('bi-heart').removeClass('bi-heart-fill');
-                            $('#likeButton').removeClass('swap');
                             likeCounter--;
                         }
-                        if (likeCounter > 0) {
-                            $('#likeButton i').text(` ${likeCounter}`);
-                        } else {
-                            $('#likeButton i').text('');
-                        }
+                        updateLikeButton(response.liked, likeCounter);
                     } else {
                         alert('Error liking lines');
                     }
@@ -304,6 +294,11 @@
             });
         });
     });
+});
+
+
+
+
 </script>
 
 
