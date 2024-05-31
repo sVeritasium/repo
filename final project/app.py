@@ -239,7 +239,7 @@ def notepad():
 
     # when deleting, need to match user id for security
     if request.method == "POST":
-        line_id = request.form.get("delete_line")
+        line_id = request.form.get("delete_line", type=int)
         if not line_id:
             flash("Error encountered when deleting")
             return render_template("notepad.html", user_data=user_data)

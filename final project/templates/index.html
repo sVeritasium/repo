@@ -111,82 +111,39 @@
 
     
 <script> 
-    $(document).ready(function() {
+   $(document).ready(function() {
     let selectedLineId = null;
+    let activeInterval = null;
 
-    // Fetch user data when the customize button is clicked
-    $('#customizeButton').on('click', function() {
-        // Reset the selected line and icon when the modal is opened
-        selectedLineId = null;
-        $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
-        $('.list-group-item').removeClass('active');
-
-        $.ajax({
-            url: '/customize',
-            type: 'POST',
-            success: function(data) {
-                let userLinesList = $('#userLinesList');
-                userLinesList.empty(); // Clear previous entries
-                data.forEach(function(line) {
-                    userLinesList.append(
-                        `<a href="#" class="list-group-item list-group-item-action" data-line-id="${line.id}">
-                            ${line.line}
-                        </a>`
-                    );
-                });
-
-                // Handle line selection
-                $('.list-group-item').on('click', function() {
-                    $('.list-group-item').removeClass('active');
-                    $(this).addClass('active');
-                    selectedLineId = $(this).data('line-id');
-                });
-            },
-            error: function() {
-                alert('Error fetching user data');
-            }
-        });
-    });
-
-    // Save the selected line
-    $('#saveSelectedLine').on('click', function() {
-        if (selectedLineId) {
-            fetchLines(selectedLineId);
-            $('#customizeModal').modal('hide');
-            $('#pencilIcon').removeClass('bi-pencil').addClass('bi-pencil-fill');
-        } else {
-            alert('Please select a line');
-        }
-    });
-
+    // Function to fetch lines from the server
     function fetchLines(selectedLineId = null) {
-        let url = '/get_entries';
-        if (selectedLineId) {
-            url += `?poemID=${selectedLineId}&customize=1`;
-        }
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                // Set the identifier in line0
-                document.getElementById('poem_type').dataset.poemType = data.lines[0].poem_type;
+    let url = '/get_entries';
+    if (selectedLineId) {
+        url += `?poemID=${selectedLineId}&customize=1`;
+    }
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            // Set the identifier in line0
+            document.getElementById('poem_type').dataset.poemType = data.lines[0].poem_type;
 
-                // Apply the pop animation class to lines 1, 2, and 3
-                document.getElementById('line1').classList.add('pop');
-                document.getElementById('line2').classList.add('pop');
-                document.getElementById('line3').classList.add('pop');
+            // Apply the pop animation class to lines 1, 2, and 3
+            document.getElementById('line1').classList.add('pop');
+            document.getElementById('line2').classList.add('pop');
+            document.getElementById('line3').classList.add('pop');
 
-                // Remove the pop class after animation and update content
-                setTimeout(() => {
-                    // Clear previous content and classes
-                    clearAndAnimateLine('line1', data.lines[1].line, data.lines[1].id);
-                    clearAndAnimateLine('line2', data.lines[2].line, data.lines[2].id);
-                    clearAndAnimateLine('line3', data.lines[3].line, data.lines[3].id);
+            // Remove the pop class after animation and update content
+            setTimeout(() => {
+                // Clear previous content and classes
+                clearAndAnimateLine('line1', data.lines[1].line, data.lines[1].id);
+                clearAndAnimateLine('line2', data.lines[2].line, data.lines[2].id);
+                clearAndAnimateLine('line3', data.lines[3].line, data.lines[3].id);
 
-                    // Update the like button based on liked status
-                    updateLikeButton(data.liked, data.likes);
-                }, 600); // 600ms matches the duration of the pop animation
-            })
-            .catch(error => console.error('Error fetching lines:', error));
+                // Update the like button based on liked status
+                updateLikeButton(data.liked, data.likes);
+            }, 600); // 600ms matches the duration of the pop animation
+        })
+        .catch(error => console.error('Error fetching lines:', error));
     }
 
     function updateLikeButton(liked, likeCounter) {
@@ -244,11 +201,76 @@
         }
     }
 
-    // Fetch new lines every 15 seconds
-    setInterval(fetchLines, 15600); // 15 seconds + 600ms pop animation
+    // Fetch user data when the customize button is clicked
+$('#customizeButton').on('click', function() {
+    // Reset the selected line and icon when the modal is opened
+    selectedLineId = null;
+    $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
+    $('.list-group-item').removeClass('active');
 
-    // Initial fetch
-    fetchLines();
+    $.ajax({
+        url: '/customize',
+        type: 'POST',
+        success: function(data) {
+            let userLinesList = $('#userLinesList');
+            userLinesList.empty(); // Clear previous entries
+            data.forEach(function(line) {
+                userLinesList.append(
+                    `<a href="#" class="list-group-item list-group-item-action" data-line-id="${line.id}">
+                        ${line.line}
+                    </a>`
+                );
+            });
+
+            // Handle line selection
+            $('.list-group-item').on('click', function() {
+                $('.list-group-item').removeClass('active');
+                $(this).addClass('active');
+                selectedLineId = $(this).data('line-id');
+            });
+
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                let searchText = $(this).val().toLowerCase();
+                $('.list-group-item').each(function() {
+                    let lineText = $(this).text().toLowerCase();
+                    if (lineText.includes(searchText)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+        },
+        error: function() {
+            alert('Error fetching user data');
+        }
+    });
+
+    // Clear the interval when the modal is opened
+    clearInterval(fetchInterval);
+    fetchInterval = setInterval(fetchLines, 15600); // Reset to fetch without any specific line
+    });
+
+    // Initial fetch interval setup
+    let fetchInterval = setInterval(fetchLines, 15600); // 15 seconds + 600ms pop animation
+
+    // Save the selected line
+    $('#saveSelectedLine').on('click', function() {
+        if (selectedLineId) {
+            fetchLines(selectedLineId);
+            $('#customizeModal').modal('hide');
+            $('#pencilIcon').removeClass('bi-pencil').addClass('bi-pencil-fill');
+
+            // Set interval to continuously send information to /get_entries with the selected line
+            clearInterval(fetchInterval); // Clear previous interval
+            fetchInterval = setInterval(() => {
+                fetchLines(selectedLineId);
+            }, 15600); // 15 seconds + 600ms pop animation
+        } else {
+            alert('Please select a line');
+        }
+    });
 
     jQuery(function($) {
         $('#likeButton').on('click', function() {
@@ -291,10 +313,10 @@
             });
         });
     });
+
+    // Initial fetch
+    fetchLines();
 });
-
-
-
 
 
 </script>
