@@ -17,11 +17,12 @@
             <p class="h2 lines" id="line3"></p>
         </div>
         <div>
-            <!-- form -->
             <button id="likeButton" class="btn btn-default swap mt-2">
                 <i class="bi bi-heart"> </i>
             </button>
-
+            <button class="btn btn-default mt-2" type="button" id="customizeButton" data-bs-toggle="modal" data-bs-target="#customizeModal">
+                <i class="bi bi-pencil" id="pencilIcon"></i>
+            </button>
         </div>
     </div>
 
@@ -38,11 +39,8 @@
             <form action="/entry" method="post">
                 <div class="input-group mb-2">
                     <input type="text" name="line" placeholder="checkout the tooltip" class="form-control placeholder-text">
-                    <button class="btn btn-secondary" type="button" id="tooltipButton" data-bs-toggle="modal" data-bs-target="#tooltipModal">
+                    <button class="btn" type="button" id="tooltipButton" data-bs-toggle="modal" data-bs-target="#tooltipModal">
                         <i class="bi bi-info-circle"></i>
-                    </button>
-                    <button class="btn btn-secondary" type="button" id="customizeButton" data-bs-toggle="modal" data-bs-target="#customizeModal">
-                        <i class="bi bi-pencil"></i>
                     </button>
                 </div>
                 <button class="btn mt-2" type="submit">Cast</button>
@@ -50,6 +48,28 @@
         </div>
     </div>
 
+    <!-- Customize Modal -->
+    <div class="modal fade" id="customizeModal" tabindex="-1" aria-labelledby="customizeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customizeModalLabel">Select a Line (checkout tooltip first)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group" id="userLinesList" style="max-height: 300px; overflow-y: auto;">
+                        <!-- User lines will be appended here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveSelectedLine">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip Modal -->
     <div class="modal fade" id="tooltipModal" tabindex="-1" aria-labelledby="tooltipModalLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
@@ -84,10 +104,59 @@
         <input type="text" class="form-control" placeholder="Server" aria-label="Server">
         <button class="btn mt-3" type="submit">Cast</button>
       </div> -->
+      
 
-    <script>
-        function fetchLines() {
-        fetch('/get_entries')
+
+    
+<script> 
+    let selectedLineId = null;
+
+$(document).ready(function() {
+    // Fetch user data when the customize button is clicked
+    $('#customizeButton').on('click', function() {
+        $.ajax({
+            url: '/customize',
+            type: 'POST',
+            success: function(data) {
+                let userLinesList = $('#userLinesList');
+                userLinesList.empty(); // Clear previous entries
+                data.forEach(function(line) {
+                    userLinesList.append(
+                        `<a href="#" class="list-group-item list-group-item-action" data-line-id="${line.id}">
+                            ${line.line}
+                        </a>`
+                    );
+                });
+
+                // Handle line selection
+                $('.list-group-item').on('click', function() {
+                    $('.list-group-item').removeClass('active');
+                    $(this).addClass('active');
+                    selectedLineId = $(this).data('line-id');
+                });
+            },
+            error: function() {
+                alert('Error fetching user data');
+            }
+        });
+    });
+
+    // Save the selected line
+    $('#saveSelectedLine').on('click', function() {
+        if (selectedLineId) {
+            fetchLines(selectedLineId);
+            $('#customizeModal').modal('hide');
+        } else {
+            alert('Please select a line');
+        }
+    });
+
+    function fetchLines(selectedLineId = null) {
+        let url = '/get_entries';
+        if (selectedLineId) {
+            url += `?poemID=${selectedLineId}&customize=1`;
+        }
+        fetch(url)
             .then(response => response.json())
             .then(data => {
                 // Set the identifier in line0
@@ -124,7 +193,53 @@
                 }, 600); // 600ms matches the duration of the pop animation
             })
             .catch(error => console.error('Error fetching lines:', error));
-        }
+    }
+
+    // Fetch new lines every 15 seconds
+    setInterval(fetchLines, 15600); // 15 seconds + 600ms pop animation
+
+    // Initial fetch
+    fetchLines();
+});
+        // function fetchLines() {
+        // fetch('/get_entries')
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         // Set the identifier in line0
+        //         document.getElementById('poem_type').dataset.poemType = data.lines[0].poem_type;
+
+        //         // Apply the pop animation class to lines 1, 2, and 3
+        //         document.getElementById('line1').classList.add('pop');
+        //         document.getElementById('line2').classList.add('pop');
+        //         document.getElementById('line3').classList.add('pop');
+
+        //         // Remove the pop class after animation and update content
+        //         setTimeout(() => {
+        //             // Clear previous content and classes
+        //             clearAndAnimateLine('line1', data.lines[1].line, data.lines[1].id);
+        //             clearAndAnimateLine('line2', data.lines[2].line, data.lines[2].id);
+        //             clearAndAnimateLine('line3', data.lines[3].line, data.lines[3].id);
+
+        //             // Update the like button based on liked status
+        //             if (data.liked) {
+        //                 $('#likeButton i').addClass('bi-heart-fill').removeClass('bi-heart');
+        //                 $('#likeButton').addClass('swap');
+        //             } else {
+        //                 $('#likeButton i').addClass('bi-heart').removeClass('bi-heart-fill');
+        //                 $('#likeButton').removeClass('swap');
+        //             }
+
+        //             // Update the like counter
+        //             var likeCounter = data.likes;
+        //             if (likeCounter > 0) {
+        //                 $('#likeButton i').text(` ${likeCounter}`);
+        //             } else {
+        //                 $('#likeButton i').text('');
+        //             }
+        //         }, 600); // 600ms matches the duration of the pop animation
+        //     })
+        //     .catch(error => console.error('Error fetching lines:', error));
+        // }
 
         function clearAndAnimateLine(elementId, text, id) {
             const lineElement = document.getElementById(elementId);
@@ -217,7 +332,7 @@
                 });
             });
         });
-    </script>
+    </script> -->
 
 
 

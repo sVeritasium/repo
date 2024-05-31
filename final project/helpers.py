@@ -1,4 +1,5 @@
 import re
+import random
 
 from flask import redirect, render_template, request, session
 from functools import wraps
@@ -37,3 +38,35 @@ def transform_line(line):
         return "Without " + line[8:].lower()
     else:
         return line
+    
+def random_format(lines):
+    # Transform lines according to randomly assigned format
+    formatted_lines = []
+    if random.randrange(2) == 1:
+        formatted_lines.append({
+            "poem_type": "s"
+        })
+        for i, line in enumerate(lines):
+            if i > 0:
+                parts = line["line"].split(';')
+                formatted_lines.append({
+                    "id": line["id"],
+                    "line": parts[0]
+                    
+                })
+            else:
+                formatted_lines.append(line)
+    else:
+        formatted_lines.append({
+            "poem_type": "e"
+        })
+        for i, line in enumerate(lines):
+            if i < 2:
+                parts = line["line"].split(';')
+                formatted_lines.append({
+                    "id": line["id"],
+                    "line": parts[0]
+                })
+            else:
+                formatted_lines.append(line)
+    return formatted_lines
