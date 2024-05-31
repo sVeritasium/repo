@@ -160,20 +160,20 @@ def get_entries():
                    )
         formatted_lines = random_format(custom_lines)
     else:    
-        # lines = db.execute("SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 3")
+        lines = db.execute("SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 3")
             # formatted_lines = []
 
             # --- test ---
-        if random.randrange(2) == 1:
-            formatted_lines = [
-                {'poem_type': 's'}, {'id': 64, 'line': 'With rainbows, comes magic; skies light up'}, {'id': 91, 'line': 'Without questions, no answers'}, {'id': 49, 'line': 'Without time, no healing'}
-            ]
-        else:
-            formatted_lines = [
-                {'poem_type': 'e'}, {'id': 64, 'line': 'With bananas, comes magic; skies light up'}, {'id': 91, 'line': 'Without doom, no answers'}, {'id': 49, 'line': 'Without space, no healing'}
-            ]
+        # if random.randrange(2) == 1:
+        #     formatted_lines = [
+        #         {'poem_type': 's'}, {'id': 64, 'line': 'With rainbows, comes magic; skies light up'}, {'id': 91, 'line': 'Without questions, no answers'}, {'id': 49, 'line': 'Without time, no healing'}
+        #     ]
+        # else:
+        #     formatted_lines = [
+        #         {'poem_type': 'e'}, {'id': 64, 'line': 'With bananas, comes magic; skies light up'}, {'id': 91, 'line': 'Without doom, no answers'}, {'id': 49, 'line': 'Without space, no healing'}
+        #     ]
 
-        
+        formatted_lines = random_format(lines)
 
     liked = None
     if "user_id" in session:
@@ -239,7 +239,7 @@ def notepad():
 
     # when deleting, need to match user id for security
     if request.method == "POST":
-        line_id = request.form.get("delete_line", type=int)
+        line_id = request.form.get("delete_line")
         if not line_id:
             flash("Error encountered when deleting")
             return render_template("notepad.html", user_data=user_data)

@@ -198,48 +198,51 @@
 
     function setupCustomizeModal() {
         $('#customizeButton').on('click', function() {
-            // Reset the selected line and icon when the modal is opened
-            selectedLineId = null;
-            $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
-            $('.list-group-item').removeClass('active');
+    // Clear the search input when the modal is opened
+    $('#searchInput').val('');
 
-            $.ajax({
-                url: '/customize',
-                type: 'POST',
-                success: function(data) {
-                    const userLinesList = $('#userLinesList');
-                    userLinesList.empty(); // Clear previous entries
-                    data.forEach(line => {
-                        userLinesList.append(
-                            `<a href="#" class="list-group-item list-group-item-action" data-line-id="${line.id}">
-                                ${line.line}
-                            </a>`
-                        );
-                    });
+    // Reset the selected line and icon when the modal is opened
+    selectedLineId = null;
+    $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
+    $('.list-group-item').removeClass('active');
 
-                    // Handle line selection
-                    $('.list-group-item').on('click', function() {
-                        $('.list-group-item').removeClass('active');
-                        $(this).addClass('active');
-                        selectedLineId = $(this).data('line-id');
-                    });
-
-                    // Search functionality
-                    $('#searchInput').on('input', function() {
-                        const searchText = $(this).val().toLowerCase();
-                        $('.list-group-item').each(function() {
-                            const lineText = $(this).text().toLowerCase();
-                            $(this).toggle(lineText.includes(searchText));
-                        });
-                    });
-                },
-                error: function() {
-                    alert('Error fetching user data');
-                }
+    $.ajax({
+        url: '/customize',
+        type: 'POST',
+        success: function(data) {
+            const userLinesList = $('#userLinesList');
+            userLinesList.empty(); // Clear previous entries
+            data.forEach(line => {
+                userLinesList.append(
+                    `<a href="#" class="list-group-item list-group-item-action" data-line-id="${line.id}">
+                        ${line.line}
+                    </a>`
+                );
             });
 
-            setupFetchInterval(); // Reset to fetch without any specific line
-        });
+            // Handle line selection
+            $('.list-group-item').on('click', function() {
+                $('.list-group-item').removeClass('active');
+                $(this).addClass('active');
+                selectedLineId = $(this).data('line-id');
+            });
+
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                const searchText = $(this).val().toLowerCase();
+                $('.list-group-item').each(function() {
+                    const lineText = $(this).text().toLowerCase();
+                    $(this).toggle(lineText.includes(searchText));
+                });
+            });
+        },
+        error: function() {
+            alert('Error fetching user data');
+        }
+    });
+
+    setupFetchInterval(); // Reset to fetch without any specific line
+    });
 
         $('#saveSelectedLine').on('click', function() {
             if (selectedLineId) {
