@@ -111,19 +111,16 @@
 
     
 <script> 
+    $(document).ready(function() {
     let selectedLineId = null;
 
-    $(document).ready(function() {
     // Fetch user data when the customize button is clicked
     $('#customizeButton').on('click', function() {
-        // Check if a line is already selected
-        if (selectedLineId) {
-            // Unselect the line and reset the icon
-            selectedLineId = null;
-            $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
-            return;
-        }
-        
+        // Reset the selected line and icon when the modal is opened
+        selectedLineId = null;
+        $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
+        $('.list-group-item').removeClass('active');
+
         $.ajax({
             url: '/customize',
             type: 'POST',
@@ -295,6 +292,7 @@
         });
     });
 });
+
 
 
 
