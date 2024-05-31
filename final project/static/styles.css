@@ -140,3 +140,8 @@ body {
 #likeButton.swap {
   background-color: #0072e6; /* Background remains under swap */
 }
+
+#likeButton:hover {
+  color: red;
+  background-color: transparent;
+}
