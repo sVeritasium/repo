@@ -3,7 +3,10 @@ import random
 
 from flask import redirect, render_template, request, session
 from functools import wraps
+from cs50 import SQL
 
+# Configure CS50 Library to use SQLite database
+db = SQL("sqlite:///database.db")
 
 def login_required(f):
     """
@@ -70,3 +73,14 @@ def random_format(lines):
             else:
                 formatted_lines.append(line)
     return formatted_lines
+
+def check_liked(user_id, poem_type, line1_id, line2_id, line3_id):
+    liked = db.execute("""
+                       SELECT 1 FROM likes WHERE user_id = ? AND poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+                       """, 
+                       user_id, poem_type, line1_id, line2_id, line3_id
+                       )
+    if liked:
+        return True
+    else:
+        return False
