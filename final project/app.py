@@ -261,6 +261,4 @@ def syncs():
     #                    formatted_lines[0]["poem_type"], formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"]
     #                    )
     
-    
-    
     return render_template("syncs.html", liked_poems=liked_poems)
