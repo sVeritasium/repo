@@ -5,6 +5,19 @@
 {% endblock %}
 
 {% block main %}
+    {% if get_flashed_messages() %}
+    <div class="row justify-content-center">
+        <div class="col-3 text-center flash-message mb-3" role="alert">
+            {{ get_flashed_messages() | join(" ") }}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row justify-content-center">
+        <div class="col-4 mt-2">
+            <input type="text" id="search-bar" class="form-control" placeholder="Search lines...">
+        </div>
+    </div>
     <div class="row justify-content-center">
         <table class="col-7 table-striped mt-3">
             <thead>
@@ -14,7 +27,7 @@
                     <th class="text-end" id="data-color">Delete</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="lines-table-body">
                 {% for line in user_data %}
                     <tr>
                         <td class="text-start" id="data-color">{{ line.line }}</td>
@@ -25,9 +38,25 @@
                             </form>
                         </td>
                     </tr>
-                {% endfor%}
+                {% endfor %}
             </tbody>
         </table> 
     </div>
+
+    <script>
+        document.getElementById('search-bar').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#lines-table-body tr');
+
+            rows.forEach(row => {
+                const lineText = row.querySelector('td:first-child').textContent.toLowerCase();
+                if (lineText.includes(query)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    </script>
     
 {% endblock %}

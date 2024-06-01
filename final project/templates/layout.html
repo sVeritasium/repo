@@ -16,7 +16,7 @@
 
         <link href="/static/styles.css" rel="stylesheet">
 
-        <title>Synchronicipoems: {% block title %}{% endblock %}</title>
+        <title>Synchronicipoem: {% block title %}{% endblock %}</title>
     </head>
 
     <body>
@@ -31,10 +31,7 @@
                         {% if session["user_id"] %}
                             <ul class="navbar-nav me-auto mt-2">
                                 <li class="nav-item"><a class="nav-link" href="/notepad">Notepad</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/buy">Buy</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/sell">Sell</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/history">History</a></li>
-                                <li class="nav-item"><a class="nav-link" href="/account">Account</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/syncs">Syncs</a></li>
                             </ul>
                             <ul class="navbar-nav ms-auto mt-2">
                                 <li class="nav-item nav-link navbar-brand">{{ username }}</li>
@@ -55,7 +52,8 @@
             {% block main %}{% endblock %}
         </main>
 
-        <footer class="mb-5">
+        <footer class="mb-5 text-white">
+            hi
         </footer>
         
     </body>
