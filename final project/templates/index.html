@@ -106,25 +106,25 @@
     let fetchInterval = null;
 
     // Function to fetch lines from the server
-    function fetchLines(selectedLineId = null) {
+    function fetchLines(selectedLineId) {
         let url = '/get_entries';
         if (selectedLineId) {
-            url += `?poemID=${selectedLineId}&customize=1`;
+            url += `?poemID=${selectedLineId}&mode=1`;
         }
         fetch(url)
             .then(response => response.json())
             .then(data => {
                 // Set the identifier in line0
-                $('#poem_type').data('poemType', data.lines[0].poem_type);
+                $('#poem_type').data('poemType', data.lines.poem_type);
 
                 // Apply the pop animation class to lines 1, 2, and 3
                 $('#line1, #line2, #line3').addClass('pop');
 
                 // Remove the pop class after animation and update content
                 setTimeout(() => {
-                    updateLineContent('line1', data.lines[1].line, data.lines[1].id);
-                    updateLineContent('line2', data.lines[2].line, data.lines[2].id);
-                    updateLineContent('line3', data.lines[3].line, data.lines[3].id);
+                    updateLineContent('line1', data.lines.line1, data.lines.line1_id);
+                    updateLineContent('line2', data.lines.line2, data.lines.line2_id);
+                    updateLineContent('line3', data.lines.line3, data.lines.line3_id);
 
                     // Update the like button based on liked status
                     updateLikeButton(data.liked, data.likes);
@@ -197,8 +197,8 @@
         $('.list-group-item').removeClass('active');
 
         $.ajax({
-            url: '/customize',
-            type: 'POST',
+            url: '/customize?template=index',
+            type: 'GET',
             success: function(data) {
                 const userLinesList = $('#userLinesList');
                 userLinesList.empty(); // Clear previous entries

@@ -42,37 +42,36 @@ def transform_line(line):
     else:
         return line
     
-def random_format(lines):
-    # Transform lines according to randomly assigned format
-    formatted_lines = []
-    if random.randrange(2) == 1:
-        formatted_lines.append({
-            "poem_type": "s"
-        })
-        for i, line in enumerate(lines):
-            if i > 0:
-                parts = line["line"].split(';')
-                formatted_lines.append({
-                    "id": line["id"],
-                    "line": parts[0]
-                    
-                })
-            else:
-                formatted_lines.append(line)
-    else:
-        formatted_lines.append({
-            "poem_type": "e"
-        })
-        for i, line in enumerate(lines):
-            if i < 2:
-                parts = line["line"].split(';')
-                formatted_lines.append({
-                    "id": line["id"],
-                    "line": parts[0]
-                })
-            else:
-                formatted_lines.append(line)
-    return formatted_lines
+# def random_format(lines):
+#     # Transform lines according to randomly assigned format
+#     formatted_lines = []
+#     if random.randrange(2) == 1:
+#         formatted_lines.append({
+#             "poem_type": "s"
+#         })
+#         for i, line in enumerate(lines):
+#             if i > 0:
+#                 parts = line["line"].split(';')
+#                 formatted_lines.append({
+#                     "id": line["id"],
+#                     "line": parts[0]
+#                 })
+#             else:
+#                 formatted_lines.append(line)
+#     else:
+#         formatted_lines.append({
+#             "poem_type": "e"
+#         })
+#         for i, line in enumerate(lines):
+#             if i < 2:
+#                 parts = line["line"].split(';')
+#                 formatted_lines.append({
+#                     "id": line["id"],
+#                     "line": parts[0]
+#                 })
+#             else:
+#                 formatted_lines.append(line)
+#     return formatted_lines
 
 def check_liked(user_id, poem_type, line1_id, line2_id, line3_id):
     liked = db.execute("""
@@ -84,3 +83,29 @@ def check_liked(user_id, poem_type, line1_id, line2_id, line3_id):
         return True
     else:
         return False
+    
+def random_format(lines):
+    # Transform lines according to randomly assigned format
+    formatted_lines = {}
+    if random.randrange(2) == 1:
+        formatted_lines["poem_type"] = "s"
+        for i, line in enumerate(lines):
+            if i > 0:
+                parts = line["line"].split(';')
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = parts[0]
+            else:
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = line["line"]
+
+    else:
+        formatted_lines["poem_type"] = "e"
+        for i, line in enumerate(lines):
+            if i < 2:
+                parts = line["line"].split(';')
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = parts[0]
+            else:
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = line["line"]
+    return formatted_lines

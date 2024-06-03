@@ -89,195 +89,198 @@
   </div>
 
 <script> 
-$(document).ready(function() {
-let selectedLineId = null;
-let fetchInterval = null;
+    $(document).ready(function() {
+    let selectedPoemId = null;
+    let fetchInterval = null;
 
-// Function to fetch lines from the server
-function fetchLines(selectedLineId = null) {
-    let url = '/get_entries';
-    if (selectedLineId) {
-        url += `?poemID=${selectedLineId}&customize=1`;
+    // Function to fetch lines from the server
+    function fetchLines(selectedPoemId) {
+        let url = '/get_entries?&mode=2';
+        if (selectedPoemId) {
+            url = `/get_entries?poemID=${selectedPoemId}&mode=3`;
+        }
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // Set the identifier in line0
+                $('#poem_type').data('poemType', data.lines.poem_type);
+
+                // Apply the pop animation class to lines 1, 2, and 3
+                $('#line1, #line2, #line3').addClass('pop');
+
+                // Remove the pop class after animation and update content
+                setTimeout(() => {
+                    updateLineContent('line1', data.lines.line1, data.lines.line1_id);
+                    updateLineContent('line2', data.lines.line2, data.lines.line2_id);
+                    updateLineContent('line3', data.lines.line3, data.lines.line3_id);
+
+                    // Update the like button based on liked status
+                    updateLikeButton(data.liked, data.likes);
+                }, 600); // 600ms matches the duration of the pop animation
+            })
+            .catch(error => console.error('Error fetching lines:', error));
     }
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            // Set the identifier in line0
-            $('#poem_type').data('poemType', data.lines[0].poem_type);
 
-            // Apply the pop animation class to lines 1, 2, and 3
-            $('#line1, #line2, #line3').addClass('pop');
+    function updateLineContent(elementId, text, id) {
+        const lineElement = $(`#${elementId}`);
+        lineElement.empty(); // Clear previous content
+        lineElement.removeClass('pop');
+        lineElement.data('lineId', id); // Set the data-line-id attribute with the line ID
+        lineElement.data('lineText', text); // Set the data-line-text attribute with the line text
 
-            // Remove the pop class after animation and update content
-            setTimeout(() => {
-                updateLineContent('line1', data.lines[1].line, data.lines[1].id);
-                updateLineContent('line2', data.lines[2].line, data.lines[2].id);
-                updateLineContent('line3', data.lines[3].line, data.lines[3].id);
+        // Split text into letters and spaces, and wrap each letter in a span
+        const letters = text.split('');
+        const indices = Array.from(letters.keys());
+        shuffle(indices);
 
-                // Update the like button based on liked status
-                updateLikeButton(data.liked, data.likes);
-            }, 600); // 600ms matches the duration of the pop animation
-        })
-        .catch(error => console.error('Error fetching lines:', error));
-}
+        letters.forEach((letter, i) => {
+            const span = $('<span>').text(letter);
+            if (letter === ' ') {
+                span.addClass('space');
+            } else {
+                span.addClass('letter').css('animation', `letter-appear 1s ${indices[i] * 0.07}s forwards`);
+            }
+            lineElement.append(span);
+        });
+        lineElement.addClass('bubble-up');
+    }
 
-function updateLineContent(elementId, text, id) {
-    const lineElement = $(`#${elementId}`);
-    lineElement.empty(); // Clear previous content
-    lineElement.removeClass('pop');
-    lineElement.data('lineId', id); // Set the data-line-id attribute with the line ID
-    lineElement.data('lineText', text); // Set the data-line-text attribute with the line text
+    function updateLikeButton(liked, likeCounter) {
+        const likeButtonIcon = $('#likeButton i');
+        const likeButton = $('#likeButton');
 
-    // Split text into letters and spaces, and wrap each letter in a span
-    const letters = text.split('');
-    const indices = Array.from(letters.keys());
-    shuffle(indices);
-
-    letters.forEach((letter, i) => {
-        const span = $('<span>').text(letter);
-        if (letter === ' ') {
-            span.addClass('space');
+        if (liked) {
+            likeButtonIcon.addClass('bi-heart-fill').removeClass('bi-heart');
+            likeButton.addClass('swap');
         } else {
-            span.addClass('letter').css('animation', `letter-appear 1s ${indices[i] * 0.07}s forwards`);
+            likeButtonIcon.addClass('bi-heart').removeClass('bi-heart-fill');
+            likeButton.addClass('swap'); // Ensure the swap class is always applied
         }
-        lineElement.append(span);
-    });
-    lineElement.addClass('bubble-up');
-}
 
-function updateLikeButton(liked, likeCounter) {
-    const likeButtonIcon = $('#likeButton i');
-    const likeButton = $('#likeButton');
-
-    if (liked) {
-        likeButtonIcon.addClass('bi-heart-fill').removeClass('bi-heart');
-        likeButton.addClass('swap');
-    } else {
-        likeButtonIcon.addClass('bi-heart').removeClass('bi-heart-fill');
-        likeButton.addClass('swap'); // Ensure the swap class is always applied
+        likeButtonIcon.text(likeCounter > 0 ? ` ${likeCounter}` : '');
     }
 
-    likeButtonIcon.text(likeCounter > 0 ? ` ${likeCounter}` : '');
-}
-
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
     }
-}
 
-function setupFetchInterval(selectedLineId = null) {
-    clearInterval(fetchInterval);
-    fetchInterval = setInterval(() => {
-        fetchLines(selectedLineId);
-    }, 15600); // 15 seconds + 600ms pop animation
-}
+    function setupFetchInterval(selectedPoemId = null) {
+        clearInterval(fetchInterval);
+        fetchInterval = setInterval(() => {
+            fetchLines(selectedPoemId);
+        }, 15600); // 15 seconds + 600ms pop animation
+    }
 
-function setupCustomizeModal() {
-    $('#customizeButton').on('click', function() {
-    // Clear the search input when the modal is opened
-    $('#searchInput').val('');
+    function setupCustomizeModal() {
+        $('#customizeButton').on('click', function() {
+        // Clear the search input when the modal is opened
+        $('#searchInput').val('');
 
-    // Reset the selected line and icon when the modal is opened
-    selectedLineId = null;
-    $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
-    $('.list-group-item').removeClass('active');
-
-    $.ajax({
-        url: '/customize',
-        type: 'POST',
-        success: function(data) {
-            const userLinesList = $('#userLinesList');
-            userLinesList.empty(); // Clear previous entries
-            data.forEach(line => {
-                userLinesList.append(
-                    `<a href="#" class="list-group-item list-group-item-action" data-line-id="${line.id}">
-                        ${line.line} <br><small>${line.date}</small>
-                    </a>`
-                );
-            });
-
-            // Handle line selection
-            $('.list-group-item').on('click', function() {
-                $('.list-group-item').removeClass('active');
-                $(this).addClass('active');
-                selectedLineId = $(this).data('line-id');
-            });
-
-            // Search functionality
-            $('#searchInput').on('input', function() {
-                const searchText = $(this).val().toLowerCase();
-                $('.list-group-item').each(function() {
-                    const lineText = $(this).text().toLowerCase();
-                    $(this).toggle(lineText.includes(searchText));
-                });
-            });
-        },
-        error: function() {
-            alert('Error fetching user data');
-        }
-    });
-
-    setupFetchInterval(); // Reset to fetch without any specific line
-    });
-
-    $('#saveSelectedLine').on('click', function() {
-        if (selectedLineId) {
-            fetchLines(selectedLineId);
-            $('#customizeModal').modal('hide');
-            $('#pencilIcon').removeClass('bi-pencil').addClass('bi-pencil-fill');
-            setupFetchInterval(selectedLineId); // Set interval to fetch with the selected line
-        } else {
-            alert('Please select a line');
-        }
-    });
-}
-
-function setupLikeButton() {
-    $('#likeButton').on('click', function() {
-        const poemType = $('#poem_type').data('poemType');
-        const line1Id = $('#line1').data('lineId');
-        const line1Text = $('#line1').data('lineText');
-        const line2Id = $('#line2').data('lineId');
-        const line2Text = $('#line2').data('lineText');
-        const line3Id = $('#line3').data('lineId');
-        const line3Text = $('#line3').data('lineText');
+        // Reset the selected line and icon when the modal is opened
+        selectedPoemId = null;
+        $('#pencilIcon').removeClass('bi-pencil-fill').addClass('bi-pencil');
+        $('.list-group-item').removeClass('active');
 
         $.ajax({
-            url: '/like',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                poem_type: poemType,
-                lines: [
-                    { id: line1Id, text: line1Text },
-                    { id: line2Id, text: line2Text },
-                    { id: line3Id, text: line3Text }
-                ]
-            }),
-            success: function(response) {
-                if (response.success) {
-                    let likeCounter = parseInt($('#likeButton i').text()) || 0;
-                    likeCounter = response.liked ? likeCounter + 1 : likeCounter - 1;
-                    updateLikeButton(response.liked, likeCounter);
-                } else {
-                    alert('Error liking lines');
-                }
+            url: '/customize?template=sync',
+            type: 'GET',
+            success: function(data) {
+                const userLinesList = $('#userLinesList');
+                userLinesList.empty(); // Clear previous entries
+                data.forEach(line => {
+                    userLinesList.append(
+                        `<a href="#" class="list-group-item list-group-item-action" data-poem-id="${line.id}">
+                            ${line.line1}<br>
+                            ${line.line2}<br>
+                            ${line.line3}<br>
+                            <small>${line.date}</small>
+                        </a>`
+                    );
+                });
+
+                // Handle line selection
+                $('.list-group-item').on('click', function() {
+                    $('.list-group-item').removeClass('active');
+                    $(this).addClass('active');
+                    selectedPoemId = $(this).data('poem-id');
+                });
+
+                // Search functionality
+                $('#searchInput').on('input', function() {
+                    const searchText = $(this).val().toLowerCase();
+                    $('.list-group-item').each(function() {
+                        const lineText = $(this).text().toLowerCase();
+                        $(this).toggle(lineText.includes(searchText));
+                    });
+                });
             },
             error: function() {
-                alert('Error liking lines');
+                alert('Error fetching user data');
             }
         });
-    });
-}
 
-// Initial setup
-fetchLines();
-setupFetchInterval();
-setupCustomizeModal();
-setupLikeButton();
-});
+        setupFetchInterval(); // Reset to fetch without any specific line
+        });
+
+        $('#saveSelectedLine').on('click', function() {
+            if (selectedPoemId) {
+                fetchLines(selectedPoemId);
+                $('#customizeModal').modal('hide');
+                $('#pencilIcon').removeClass('bi-pencil').addClass('bi-pencil-fill');
+                setupFetchInterval(selectedPoemId); // Set interval to fetch with the selected line
+            } else {
+                alert('Please select a line');
+            }
+        });
+    }
+
+    function setupLikeButton() {
+        $('#likeButton').on('click', function() {
+            const poemType = $('#poem_type').data('poemType');
+            const line1Id = $('#line1').data('lineId');
+            const line1Text = $('#line1').data('lineText');
+            const line2Id = $('#line2').data('lineId');
+            const line2Text = $('#line2').data('lineText');
+            const line3Id = $('#line3').data('lineId');
+            const line3Text = $('#line3').data('lineText');
+
+            $.ajax({
+                url: '/like',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    poem_type: poemType,
+                    lines: [
+                        { id: line1Id, text: line1Text },
+                        { id: line2Id, text: line2Text },
+                        { id: line3Id, text: line3Text }
+                    ]
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        let likeCounter = parseInt($('#likeButton i').text()) || 0;
+                        likeCounter = response.liked ? likeCounter + 1 : likeCounter - 1;
+                        updateLikeButton(response.liked, likeCounter);
+                    } else {
+                        alert('Error liking lines');
+                    }
+                },
+                error: function() {
+                    alert('Error liking lines');
+                }
+            });
+        });
+    }
+
+    // Initial setup
+    fetchLines();
+    setupFetchInterval();
+    setupCustomizeModal();
+    setupLikeButton();
+    });
 
 </script>
 

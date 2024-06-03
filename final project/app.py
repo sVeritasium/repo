@@ -144,56 +144,90 @@ def entry():
     return render_template("index.html")
 
 
-@app.route("/customize", methods=["POST"])
+@app.route("/customize", methods=["GET"])
 @login_required
 def customize():
     """Returns user's data to display lines in modal"""
-    user_data = db.execute("SELECT id, line, date FROM lines WHERE user_id = ? ORDER BY date", session["user_id"])
-    return jsonify(user_data)
+    template = request.args.get("template")
+    user_data = []
+
+    if template == "index":
+        user_data = db.execute("SELECT id, line, date FROM lines WHERE user_id = ? ORDER BY date", session["user_id"])
+        return jsonify(user_data)
+    elif template == "sync":
+        user_data = db.execute("SELECT * FROM likes WHERE user_id = ?", session["user_id"])
+        return jsonify(user_data)
 
 
 @app.route("/get_entries", methods=["GET"])
 def get_entries():
     """Fetch three random lines from the database"""
-    customize = request.args.get("customize", type=int)
+    mode = request.args.get("mode", type=int)
     poem_id = request.args.get("poemID", type=int)
-    formatted_lines = []
+    formatted_lines = {}
 
     # Checks for selected line
-    # if customize == 1:
-    #     custom_lines = db.execute("""SELECT * FROM (
-    #                SELECT id, line FROM lines WHERE id = ?
-    #                UNION ALL
-    #                SELECT * FROM (SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 2))
-    #                ORDER BY RANDOM();
-    #                """, poem_id
-    #                )
-    #     formatted_lines = random_format(custom_lines)
-    # else:    
-    #     lines = db.execute("SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 3")
-    #     formatted_lines = random_format(lines)
+    if mode == 1:
+        custom_lines = db.execute("""SELECT * FROM (
+                   SELECT id, line FROM lines WHERE id = ?
+                   UNION ALL
+                   SELECT * FROM (SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 2))
+                   ORDER BY RANDOM();
+                   """,
+                   poem_id
+                   )
+        formatted_lines = random_format(custom_lines)
+    elif mode == 2:
+        poem = db.execute("""SELECT poem_type, line1_id, line1, line2_id, line2, line3_id,
+                          line3 FROM likes WHERE user_id = ? ORDER BY RANDOM() LIMIT 1
+                          """,
+                          session["user_id"]
+                          )[0]
+        formatted_lines = poem
+    elif mode == 3:
+        poem = db.execute("""SELECT poem_type, line1_id, line1, line2_id, line2, line3_id,
+                          line3 FROM likes WHERE id = ?
+                          """,
+                          poem_id
+                          )[0]
+        formatted_lines = poem
+    else:    
+        lines = db.execute("SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 3")
+        formatted_lines = random_format(lines)
 
     # --- test ---
-    if random.randrange(2) == 1:
-        formatted_lines = [
-            {'poem_type': 's'}, {'id': 64, 'line': 'With rainbows, comes magic; skies light up'}, {'id': 91, 'line': 'Without questions, no answers'}, {'id': 49, 'line': 'Without time, no healing'}
-        ]
-    else:
-        formatted_lines = [
-            {'poem_type': 'e'}, {'id': 64, 'line': 'With bananas, comes magic; skies light up'}, {'id': 91, 'line': 'Without doom, no answers'}, {'id': 49, 'line': 'Without space, no healing'}
-        ]
+    # if random.randrange(2) == 1:
+    #     formatted_lines = [
+    #         {'poem_type': 's'}, {'id': 64, 'line': 'With rainbows, comes magic; skies light up'}, {'id': 91, 'line': 'Without questions, no answers'}, {'id': 49, 'line': 'Without time, no healing'}
+    #     ]
+    # else:
+    #     formatted_lines = [
+    #         {'poem_type': 'e'}, {'id': 64, 'line': 'With bananas, comes magic; skies light up'}, {'id': 91, 'line': 'Without doom, no answers'}, {'id': 49, 'line': 'Without space, no healing'}
+    #     ]
 
     # Check if user has liked poem
+    # liked = None
+    # if "user_id" in session:
+    #     liked = check_liked(session["user_id"], formatted_lines[0]["poem_type"],
+    #                         formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"])
+        
+    # # Count likes for poem
+    # likes = db.execute("""
+    #                    SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+    #                    """,
+    #                    formatted_lines[0]["poem_type"], formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"]
+    #                    )
+    
     liked = None
     if "user_id" in session:
-        liked = check_liked(session["user_id"], formatted_lines[0]["poem_type"],
-                            formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"])
+        liked = check_liked(session["user_id"], formatted_lines["poem_type"],
+                            formatted_lines["line1_id"], formatted_lines["line2_id"], formatted_lines["line3_id"])
         
     # Count likes for poem
     likes = db.execute("""
                        SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
                        """,
-                       formatted_lines[0]["poem_type"], formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"]
+                       formatted_lines["poem_type"], formatted_lines["line1_id"], formatted_lines["line2_id"], formatted_lines["line3_id"]
                        )
     
     response_data = {"lines": formatted_lines, "liked": liked, "likes" : likes[0]["count"]}
@@ -252,13 +286,24 @@ def notepad():
 
 @app.route("/syncs", methods=["GET", "POST"])
 def syncs():
-    liked_poems = db.execute("SELECT * FROM likes WHERE user_id = ?", session["user_id"])
+    # if request.args.get("likesCount") == 1:
+    #     poem_type = request.args.get()
+    #     line1_id = request.args.get()
+    #     line2_id = request.args.get()
+    #     line3_id = request.args.get()
 
-    # Count likes for poem
-    # likes = db.execute("""
-    #                    SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
-    #                    """,
-    #                    formatted_lines[0]["poem_type"], formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"]
-    #                    )
+        # Count likes for poem
+        # likes = db.execute("""
+        #                 SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+        #                 """,
+        #                 poem_type, line1_id, line2_id, line3_id
+        #                 )
+        # return jsonify(likes[0]["count"])
     
-    return render_template("syncs.html", liked_poems=liked_poems)
+    # liked_poems = db.execute("SELECT * FROM likes WHERE user_id = ?", session["user_id"])
+    return render_template("syncs.html")
+    # return render_template("syncs.html", liked_poems=liked_poems)
+
+    
+    
+    
