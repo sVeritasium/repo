@@ -23,7 +23,7 @@ Synchropoem is an experimental web application designed to explore the concept o
 ## Setup and Installation
 
 Clone the repository:
-`git clone git@github.com:USERNAME/synchropoem.git`
+`git clone git@github.com:sVeritasium/synchropoem.git`
 
 Run the application:
 `flask run`
