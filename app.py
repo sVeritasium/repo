@@ -1,12 +1,12 @@
-import random
 import datetime
+import random
 
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session, get_flashed_messages, jsonify
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import login_required, validate_entry, transform_line, random_format
+from helpers import login_required, validate_entry, transform_line, random_format, check_liked
 
 # Time
 date_time = datetime.datetime.now()
@@ -127,72 +127,110 @@ def logout():
 @app.route("/entry", methods=["POST"])
 @login_required
 def entry():
+    """Handles user's submission of line"""
     line = request.form.get("line")
 
+    # Checks if line fits formats
     if not validate_entry(line):
         flash("Invalid entry format")
+        return render_template("index.html", line=line)
+    
+    # Checks if line already exists
+    elif db.execute("SELECT 1 FROM lines WHERE line LIKE ?", f"%{transform_line(line)}%"):
+        flash("Sorry, line already exists")
         return render_template("index.html", line=line)
     
     db.execute("INSERT INTO lines (line, user_id, date) VALUES (?, ?, ?)", transform_line(line), session["user_id"], date_time)
     return render_template("index.html")
 
 
-@app.route("/customize", methods=["POST"])
+@app.route("/customize", methods=["GET"])
 @login_required
 def customize():
-    user_data = db.execute("SELECT id, line, date FROM lines WHERE user_id = ? ORDER BY date", session["user_id"])
-    return jsonify(user_data)
+    """Returns user's data to display lines in modal"""
+    template = request.args.get("template")
+    user_data = []
+
+    if template == "index":
+        user_data = db.execute("SELECT id, line, date FROM lines WHERE user_id = ? ORDER BY date", session["user_id"])
+        return jsonify(user_data)
+    elif template == "sync":
+        user_data = db.execute("SELECT * FROM likes WHERE user_id = ?", session["user_id"])
+        return jsonify(user_data)
 
 
 @app.route("/get_entries", methods=["GET"])
 def get_entries():
     """Fetch three random lines from the database"""
-    customize = request.args.get("customize", type=int)
+    mode = request.args.get("mode", type=int)
     poem_id = request.args.get("poemID", type=int)
-    formatted_lines = []
-    if customize == 1:
+    formatted_lines = {}
+
+    # Checks for selected line
+    if mode == 1:
         custom_lines = db.execute("""SELECT * FROM (
                    SELECT id, line FROM lines WHERE id = ?
                    UNION ALL
                    SELECT * FROM (SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 2))
                    ORDER BY RANDOM();
-                   """, poem_id
+                   """,
+                   poem_id
                    )
         formatted_lines = random_format(custom_lines)
+    elif mode == 2:
+        poem = db.execute("""SELECT poem_type, line1_id, line1, line2_id, line2, line3_id,
+                          line3 FROM likes WHERE user_id = ? ORDER BY RANDOM() LIMIT 1
+                          """,
+                          session["user_id"]
+                          )[0]
+        formatted_lines = poem
+    elif mode == 3:
+        poem = db.execute("""SELECT poem_type, line1_id, line1, line2_id, line2, line3_id,
+                          line3 FROM likes WHERE id = ?
+                          """,
+                          poem_id
+                          )[0]
+        formatted_lines = poem
     else:    
         lines = db.execute("SELECT id, line FROM lines ORDER BY RANDOM() LIMIT 3")
-            # formatted_lines = []
-
-            # --- test ---
-        # if random.randrange(2) == 1:
-        #     formatted_lines = [
-        #         {'poem_type': 's'}, {'id': 64, 'line': 'With rainbows, comes magic; skies light up'}, {'id': 91, 'line': 'Without questions, no answers'}, {'id': 49, 'line': 'Without time, no healing'}
-        #     ]
-        # else:
-        #     formatted_lines = [
-        #         {'poem_type': 'e'}, {'id': 64, 'line': 'With bananas, comes magic; skies light up'}, {'id': 91, 'line': 'Without doom, no answers'}, {'id': 49, 'line': 'Without space, no healing'}
-        #     ]
-
         formatted_lines = random_format(lines)
 
+    # --- test ---
+    # if random.randrange(2) == 1:
+    #     formatted_lines = [
+    #         {'poem_type': 's'}, {'id': 64, 'line': 'With rainbows, comes magic; skies light up'}, {'id': 91, 'line': 'Without questions, no answers'}, {'id': 49, 'line': 'Without time, no healing'}
+    #     ]
+    # else:
+    #     formatted_lines = [
+    #         {'poem_type': 'e'}, {'id': 64, 'line': 'With bananas, comes magic; skies light up'}, {'id': 91, 'line': 'Without doom, no answers'}, {'id': 49, 'line': 'Without space, no healing'}
+    #     ]
+
+    # Check if user has liked poem
+    # liked = None
+    # if "user_id" in session:
+    #     liked = check_liked(session["user_id"], formatted_lines[0]["poem_type"],
+    #                         formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"])
+        
+    # # Count likes for poem
+    # likes = db.execute("""
+    #                    SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+    #                    """,
+    #                    formatted_lines[0]["poem_type"], formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"]
+    #                    )
+    
     liked = None
     if "user_id" in session:
-        liked = db.execute("""
-                        SELECT 1 FROM likes WHERE user_id = ? AND poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
-                        """,
-                        session["user_id"], formatted_lines[0]["poem_type"],
-                        formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"]
-                        )
-    
+        liked = check_liked(session["user_id"], formatted_lines["poem_type"],
+                            formatted_lines["line1_id"], formatted_lines["line2_id"], formatted_lines["line3_id"])
+        
+    # Count likes for poem
     likes = db.execute("""
                        SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
                        """,
-                       formatted_lines[0]["poem_type"], formatted_lines[1]["id"], formatted_lines[2]["id"], formatted_lines[3]["id"]
+                       formatted_lines["poem_type"], formatted_lines["line1_id"], formatted_lines["line2_id"], formatted_lines["line3_id"]
                        )
-
-    liked_status = True if liked else False
-    response_data = {"lines": formatted_lines, "liked": liked_status, "likes" : likes[0]["count"]}
-
+    
+    response_data = {"lines": formatted_lines, "liked": liked, "likes" : likes[0]["count"]}
     return jsonify(response_data)
 
 
@@ -203,16 +241,12 @@ def like():
     lines = request.json.get("lines")
     poem_type = request.json.get("poem_type")
 
+    # Check for inputs
     if not lines or len(lines) != 3 or not poem_type:
         return jsonify({"error": "Please try again"}), 400
     
     # Check if the like already exists
-    liked = db.execute("""
-                       SELECT 1 FROM likes WHERE user_id = ? AND poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
-                       """, 
-                       session.get("user_id"), poem_type, lines[0]["id"], lines[1]["id"], lines[2]["id"]
-                       )
-    
+    liked = check_liked(session["user_id"], poem_type, lines[0]["id"], lines[1]["id"], lines[2]["id"])
     if liked:
         # If liked, delete the like
         db.execute("""
@@ -231,19 +265,45 @@ def like():
 
 @app.route("/notepad", methods=["GET", "POST"])
 def notepad():
-    # display user data
-    # need to select lines by user id logged in
-    # **a person can spoof a session and access another user's data and make deletions?
-    # need to look into how to make a proper session?**
+    """Display user's lines and allows for deletion"""
     user_data = db.execute("SELECT id, line, date FROM lines WHERE user_id = ? ORDER BY date", session["user_id"])
 
-    # when deleting, need to match user id for security
+    # Delete line
     if request.method == "POST":
         line_id = request.form.get("delete_line")
         if not line_id:
             flash("Error encountered when deleting")
             return render_template("notepad.html", user_data=user_data)
-        db.execute("DELETE FROM lines WHERE user_id = ? AND id = ?", session["user_id"], line_id)
-        return redirect("/notepad")
-
+        try:
+            db.execute("DELETE FROM lines WHERE user_id = ? AND id = ?", session["user_id"], line_id)
+            flash("Line successfully deleted")
+            return redirect("/notepad")
+        except:
+            flash("Error: Line cannot be deleted due to it having been weaved into a poem and appreciated")
+            return redirect("/notepad")
+        
     return render_template("notepad.html", user_data=user_data)
+
+@app.route("/syncs", methods=["GET", "POST"])
+def syncs():
+    # if request.args.get("likesCount") == 1:
+    #     poem_type = request.args.get()
+    #     line1_id = request.args.get()
+    #     line2_id = request.args.get()
+    #     line3_id = request.args.get()
+
+        # Count likes for poem
+        # likes = db.execute("""
+        #                 SELECT COUNT(*) AS count FROM likes WHERE poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+        #                 """,
+        #                 poem_type, line1_id, line2_id, line3_id
+        #                 )
+        # return jsonify(likes[0]["count"])
+    
+    # liked_poems = db.execute("SELECT * FROM likes WHERE user_id = ?", session["user_id"])
+    return render_template("syncs.html")
+    # return render_template("syncs.html", liked_poems=liked_poems)
+
+    
+    
+    

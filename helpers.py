@@ -3,7 +3,10 @@ import random
 
 from flask import redirect, render_template, request, session
 from functools import wraps
+from cs50 import SQL
 
+# Configure CS50 Library to use SQLite database
+db = SQL("sqlite:///database.db")
 
 def login_required(f):
     """
@@ -39,34 +42,70 @@ def transform_line(line):
     else:
         return line
     
+# def random_format(lines):
+#     # Transform lines according to randomly assigned format
+#     formatted_lines = []
+#     if random.randrange(2) == 1:
+#         formatted_lines.append({
+#             "poem_type": "s"
+#         })
+#         for i, line in enumerate(lines):
+#             if i > 0:
+#                 parts = line["line"].split(';')
+#                 formatted_lines.append({
+#                     "id": line["id"],
+#                     "line": parts[0]
+#                 })
+#             else:
+#                 formatted_lines.append(line)
+#     else:
+#         formatted_lines.append({
+#             "poem_type": "e"
+#         })
+#         for i, line in enumerate(lines):
+#             if i < 2:
+#                 parts = line["line"].split(';')
+#                 formatted_lines.append({
+#                     "id": line["id"],
+#                     "line": parts[0]
+#                 })
+#             else:
+#                 formatted_lines.append(line)
+#     return formatted_lines
+
+def check_liked(user_id, poem_type, line1_id, line2_id, line3_id):
+    liked = db.execute("""
+                       SELECT 1 FROM likes WHERE user_id = ? AND poem_type = ? AND line1_id = ? AND line2_id = ? AND line3_id = ?
+                       """, 
+                       user_id, poem_type, line1_id, line2_id, line3_id
+                       )
+    if liked:
+        return True
+    else:
+        return False
+    
 def random_format(lines):
     # Transform lines according to randomly assigned format
-    formatted_lines = []
+    formatted_lines = {}
     if random.randrange(2) == 1:
-        formatted_lines.append({
-            "poem_type": "s"
-        })
+        formatted_lines["poem_type"] = "s"
         for i, line in enumerate(lines):
             if i > 0:
                 parts = line["line"].split(';')
-                formatted_lines.append({
-                    "id": line["id"],
-                    "line": parts[0]
-                    
-                })
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = parts[0]
             else:
-                formatted_lines.append(line)
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = line["line"]
+
     else:
-        formatted_lines.append({
-            "poem_type": "e"
-        })
+        formatted_lines["poem_type"] = "e"
         for i, line in enumerate(lines):
             if i < 2:
                 parts = line["line"].split(';')
-                formatted_lines.append({
-                    "id": line["id"],
-                    "line": parts[0]
-                })
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = parts[0]
             else:
-                formatted_lines.append(line)
+                formatted_lines[f"line{i + 1}_id"] = line["id"]
+                formatted_lines[f"line{i + 1}"] = line["line"]
     return formatted_lines
